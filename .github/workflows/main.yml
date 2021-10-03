@@ -1,0 +1,35 @@
+name: CI
+
+env:
+  GRAALVM_HOME: .graalvm
+
+on:
+  push:
+    branches:
+      - main
+
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v2
+
+      - name: Setup GraalVM
+        uses: DeLaGuardo/setup-graalvm@5.0
+        with:
+          graalvm: '21.2.0'
+          java: 'java11'
+          arch: 'amd64'
+
+      - name: Build native
+        run: ./gradlew build -Dquarkus.package.type=native --stacktrace --info
+
+      - name: Setup docker build
+        uses: docker/setup-buildx-action@v1
+        id: buildx
+
+      - name: Build docker image
+        run: docker build -f src/main/docker/Dockerfile.native -t quarkus/cloudrun .
