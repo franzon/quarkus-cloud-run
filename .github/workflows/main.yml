@@ -1,6 +1,10 @@
 name: CI
 
 env:
+  PROJECT_ID: aifudy-dev
+  SERVICE: hello
+  REGION: southamerica-east1
+  REPOSITORY: images
   GRAALVM_HOME: .graalvm
 
 on:
@@ -32,19 +36,31 @@ jobs:
         run: chmod a+x ./gradlew
 
       - name: Build native
-        run: ./gradlew build -Dquarkus.package.type=native --stacktrace --info
+        run: ./gradlew build -Dquarkus.package.type=native
 
       - name: Setup docker build
         uses: docker/setup-buildx-action@v1
         id: buildx
 
-      - name: Build docker image
-        run: docker build -f src/main/docker/Dockerfile.native -t quarkus/cloudrun .
+      - name: Setup Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.0
+        with:
+          project_id: ${{ env.PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
+
+      - name: Authorize Docker push
+        run: gcloud auth configure-docker southamerica-east1-docker.pkg.dev
+
+      - name: Build and Push Container
+        run: |-
+          docker build -f src/main/docker/Dockerfile.native -t ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }} .
+          docker push ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
 
       - name: Deploy to Cloud Run
         id: deploy
         uses: google-github-actions/deploy-cloudrun@main
         with:
-          service: hello
-          image: quarkus/cloudrun
-          credentials: ${{ secrets.GCP_SA_KEY }}
+          service: ${{ env.SERVICE }}
+          image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
+          region: ${{ env.REGION }}
