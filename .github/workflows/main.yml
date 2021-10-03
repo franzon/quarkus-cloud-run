@@ -24,6 +24,9 @@ jobs:
           java: 'java11'
           arch: 'amd64'
 
+      - name: Fix gradle execute permission
+        run: chmod a+x ./gradlew
+
       - name: Build native
         run: ./gradlew build -Dquarkus.package.type=native --stacktrace --info
 
