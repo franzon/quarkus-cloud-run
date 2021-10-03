@@ -36,7 +36,10 @@ jobs:
         run: chmod a+x ./gradlew
 
       - name: Build native
-        run: ./gradlew build -Dquarkus.package.type=native
+        run: ./gradlew build -Dquarkus.package.type=native -x test -x testNative
+
+      - name: Run tests
+        run: ./gradlew testNative
 
       - name: Setup docker build
         uses: docker/setup-buildx-action@v1
@@ -64,3 +67,7 @@ jobs:
           service: ${{ env.SERVICE }}
           image: ${{ env.REGION }}-docker.pkg.dev/${{ env.PROJECT_ID }}/${{ env.REPOSITORY }}/${{ env.SERVICE }}:${{ github.sha }}
           region: ${{ env.REGION }}
+
+      - name: Clean-up revisions
+        run: gcloud run revisions delete --quiet `gcloud run revisions list --service=hello --format="value(name,creationTimestamp)" --sort-by=~creationTimestamp | sed 1,2d  | awk '{print $1}'
+        continue-on-error: true
