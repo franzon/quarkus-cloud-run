@@ -69,5 +69,5 @@ jobs:
           region: ${{ env.REGION }}
 
       - name: Clean-up revisions
-        run: gcloud run revisions delete --quiet `gcloud run revisions list --service=hello --format="value(name,creationTimestamp)" --sort-by=~creationTimestamp | sed 1,2d  | awk '{print $1}'`
+        run: gcloud run revisions delete --quiet `gcloud run revisions list --service=hello --format="value(name,creationTimestamp)" --sort-by=~creationTimestamp | sed 1,2d  | awk '{print $1}' | | tr "\n" " "`
         continue-on-error: true
