@@ -13,6 +13,7 @@ on:
 jobs:
   build:
     runs-on: ubuntu-latest
+    environment: Dev
     steps:
       - name: Checkout repo
         uses: actions/checkout@v2
@@ -23,6 +24,9 @@ jobs:
           graalvm: '21.2.0'
           java: 'java11'
           arch: 'amd64'
+
+      - name: Install native-image component
+        run: ${GRAALVM_HOME}/bin/gu install native-image
 
       - name: Fix gradle execute permission
         run: chmod a+x ./gradlew
@@ -36,3 +40,11 @@ jobs:
 
       - name: Build docker image
         run: docker build -f src/main/docker/Dockerfile.native -t quarkus/cloudrun .
+
+      - name: Deploy to Cloud Run
+        id: deploy
+        uses: google-github-actions/deploy-cloudrun@main
+        with:
+          service: hello
+          image: quarkus/cloudrun
+          credentials: ${{ secrets.GCP_SA_KEY }}
